@@ -1,0 +1,158 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+const ProductList = () => {
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get('/api/products');
+        setProducts(response.data);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  return (
+    <div>
+      <h2>Lista de Productos</h2>
+      <ul>
+        {products.map((product) => (
+          <li key={product._id}>
+            <strong>{product.title}</strong> - ${product.price}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default ProductList;
+import React, { useState } from 'react';
+import axios from 'axios';
+
+const PublishProductForm = () => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState(0);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const productData = { title, description, price };
+
+    try {
+      const response = await axios.post('/api/products', productData);
+      console.log('Producto publicado:', response.data);
+      alert('Producto publicado exitosamente');
+      setTitle('');
+      setDescription('');
+      setPrice(0);
+    } catch (error) {
+      console.error('Error al publicar el producto:', error);
+      alert('Hubo un problema al publicar el producto');
+    }
+  };
+
+  return (
+    <div>
+      <h2>Publicar Nuevo Producto</h2>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Título:
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+        </label>
+        <label>
+          Descripción:
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
+        </label>
+        <label>
+          Precio:
+          <input
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            required
+          />
+        </label>
+        <button type="submit">Publicar Producto</button>
+      </form>
+    </div>
+  );
+};
+
+export default PublishProductForm;
+const mongoose = require('mongoose');
+
+const productSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  price: { type: Number, required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const Product = mongoose.model('Product', productSchema);
+
+module.exports = Product;
+const express = require('express');
+const router = express.Router();
+const Product = require('../models/Product');
+
+// Obtener todos los productos
+router.get('/', async (req, res) => {
+  try {
+    const products = await Product.find();
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Crear un nuevo producto
+router.post('/', async (req, res) => {
+  const { title, description, price } = req.body;
+
+  try {
+    const newProduct = new Product({ title, description, price });
+    const savedProduct = await newProduct.save();
+    res.status(201).json(savedProduct);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+module.exports = router;
+const express = require('express');
+const mongoose = require('mongoose');
+const productRouter = require('./routes/products');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(express.json());
+
+// Conexión a la base de datos MongoDB
+mongoose.connect('mongodb://localhost:27017/temu', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+// Rutas de productos
+app.use('/api/products', productRouter);
+
+// Iniciar servidor
+app.listen(PORT, () =>
+
